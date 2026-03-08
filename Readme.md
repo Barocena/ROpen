@@ -1,11 +1,11 @@
 <div align="center">
-<img src="./assets/Logo.png">
+<img src="./Assets/Logo.png" style="width:256px;height:256px;">
 <h1>
 ROpen
 </h1>
 </div>
 
-ROpen is a cli tool to a launch the roblox studio for specific place under the game
+ROpen is a cli tool to launch Roblox Studio for a specific place in the game
 
 ## Installation
 
@@ -23,15 +23,15 @@ rokit add Barocena/ROpen
 
 ## Usage
 
-`ropen init` will generate a `ROpen.yaml` file
+`ropen init` to generate a `ropen.yaml` file
 
 `ropen "GameName/PlaceName"` to open a place under the given game with studio
 
-`ropen` to list the games and places under the chosen game to launch
+`ropen` to select the game and place to launch with an interactive picker
 
 ---
 
-`ROpen.yaml` is config file for the places.
+`ropen.yaml` is manifest file for the places.
 
 the template of this file is
 
@@ -44,4 +44,4 @@ Crossroads:
 
 this file can be anywhere in the project,
 
-ROpen config file can be synced with rojo so it is possible to use this file as environment manifest.
+ROpen manifest file can be synced with rojo so it is possible to use this file as environment manifest at runtime.
