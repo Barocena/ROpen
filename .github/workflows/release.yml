@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v1.3.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.artifact-name }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - artifact-name: ropen-windows-x86_64
+            target: x86_64-pc-windows-msvc
+            binary: ropen.exe
+
+          - artifact-name: ropen-linux-x86_64
+            target: x86_64-unknown-linux-gnu
+            binary: ropen
+
+          - artifact-name: ropen-linux-aarch64
+            target: aarch64-unknown-linux-gnu
+            binary: ropen
+
+          - artifact-name: ropen-macos-x86_64
+            target: x86_64-apple-darwin
+            binary: ropen
+
+          - artifact-name: ropen-macos-aarch64
+            target: aarch64-apple-darwin
+            binary: ropen
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install Rokit
+        uses: CompeyDev/setup-rokit@v0.1.2
+
+      - name: Build binary
+        run: |
+          lune build src/app.luau \
+            --target ${{ matrix.target }} \
+            --output ${{ matrix.binary }}
+
+      - name: Create zip
+        run: |
+          zip ${{ matrix.artifact-name }}.zip ${{ matrix.binary }}
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: ${{ matrix.artifact-name }}.zip
