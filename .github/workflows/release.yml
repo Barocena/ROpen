@@ -52,9 +52,6 @@ jobs:
       - name: Install Rokit
         uses: CompeyDev/setup-rokit@v0.1.2
 
-      - name: Install Lune
-        run: rokit add lune
-
       - name: Build binary
         run: |
           lune build src/app.luau \
