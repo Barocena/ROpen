@@ -52,17 +52,24 @@ jobs:
       - name: Install Rokit
         uses: CompeyDev/setup-rokit@v0.1.2
 
+      - name: Install Lune
+        run: rokit add lune
+
       - name: Build binary
         run: |
           lune build src/app.luau \
             --target ${{ matrix.target }} \
-            --output ${{ matrix.binary }}
+            --output ${{ matrix.artifact-name }}
 
-      - name: Create zip archive
+      - name: Rename binary
+        run: |
+          mv ${{ matrix.artifact-name }} ${{ matrix.binary }}
+
+      - name: Create archive
         run: |
           zip ${{ matrix.artifact-name }}.zip ${{ matrix.binary }}
 
-      - name: Upload release assets
+      - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
