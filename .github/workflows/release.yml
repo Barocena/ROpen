@@ -24,23 +24,23 @@ jobs:
       matrix:
         include:
           - artifact-name: ropen-windows-x86_64
-            target: x86_64-pc-windows-msvc
+            target: windows-x86_64
             binary: ropen.exe
 
           - artifact-name: ropen-linux-x86_64
-            target: x86_64-unknown-linux-gnu
+            target: linux-x86_64
             binary: ropen
 
           - artifact-name: ropen-linux-aarch64
-            target: aarch64-unknown-linux-gnu
+            target: linux-aarch64
             binary: ropen
 
           - artifact-name: ropen-macos-x86_64
-            target: x86_64-apple-darwin
+            target: macos-x86_64
             binary: ropen
 
           - artifact-name: ropen-macos-aarch64
-            target: aarch64-apple-darwin
+            target: macos-aarch64
             binary: ropen
 
     steps:
