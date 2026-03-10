@@ -25,7 +25,7 @@ rokit add Barocena/ROpen
 
 `ropen init` to generate a `ropen.yaml` file
 
-`ropen "GameName/PlaceName"` to open a place under the given game with studio
+`ropen GameName/PlaceName` to open a place under the given game with studio
 
 `ropen` to select the game and place to launch with an interactive picker
 
