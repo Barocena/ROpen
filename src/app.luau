@@ -59,12 +59,33 @@ local function findKeyInsensitive(tbl, key)
 	return nil
 end
 
+local function isPlaceId(value)
+	return type(value) == "number" or tonumber(value) ~= nil
+end
+
+local function getSinglePlaceFromTable(tbl)
+	local foundKey = nil
+	local foundValue = nil
+
+	for k, v in tbl do
+		if k ~= "UniverseId" and isPlaceId(v) then
+			if foundKey then
+				return nil
+			end
+			foundKey = k
+			foundValue = v
+		end
+	end
+
+	return foundKey, foundValue
+end
+
 local function Color(text, c1, c2)
 	return `{stdio.color(c1)}{text}{c2 and stdio.color(c2) or ""}`
 end
 
-local function openPlace(gameKey, placeKey, placeId, universeId)
-	local url = `roblox-studio:1+task:EditPlace+placeId:{placeId}+universeId:{universeId}`
+local function openPlace(gameKey, placeKey, placeId)
+	local url = `roblox-studio:1+task:EditPlace+placeId:{placeId}+universeId:0`
 
 	local osName = process.os
 
@@ -75,7 +96,12 @@ local function openPlace(gameKey, placeKey, placeId, universeId)
 	else
 		process.exec("xdg-open", { url })
 	end
-	print(`{Color("Opening Place:", "yellow")} {Color(gameKey, "cyan", "yellow")} → {Color(placeKey, "cyan")}`)
+
+	if gameKey == placeKey then
+		print(`{Color("Opening Place:", "yellow")} {Color(gameKey, "cyan")}`)
+	else
+		print(`{Color("Opening Place:", "yellow")} {Color(gameKey, "cyan", "yellow")} → {Color(placeKey, "cyan")}`)
+	end
 end
 
 local function Help()
@@ -97,13 +123,13 @@ local function Help()
 
 	print(Color("EXAMPLES", "purple", "cyan"))
 	print("  ropen Crossroads/Lobby")
+	print("  ropen YourGame")
 	print("  ropen")
 	print("")
 end
 
 local arg = process.args[1]
 
--- INIT COMMAND
 if arg and arg:lower() == "init" then
 	if ROpenPath then
 		print("ropen.yaml already exists at:", ROpenPath)
@@ -112,9 +138,10 @@ if arg and arg:lower() == "init" then
 
 	local template = [[
 Crossroads:
-  UniverseId: 13058 # required
   Lobby: 1818 # place id
   Arena: 1818 # place id
+
+YourGame: 1818 # placeid
 ]]
 
 	fs.writeFile("./ropen.yaml", template)
@@ -144,7 +171,6 @@ end
 
 local Config = serde.decode("yaml", fs.readFile(ROpenPath))
 
--- CLI argument mode
 if arg then
 	if process.args[2] then
 		arg = table.concat(process.args, " ")
@@ -154,30 +180,50 @@ if arg then
 	local gameInput = parts[1]
 	local placeInput = parts[2]
 
-	if not gameInput or not placeInput then
-		print(`{Color("Usage:", "blue", "cyan")} ropen <game>/<place>`)
-		return
-	end
+	local gameKey, gameValue = findKeyInsensitive(Config, gameInput)
 
-	local gameKey, gameTable = findKeyInsensitive(Config, gameInput)
-
-	if not gameTable then
+	if not gameValue then
 		print(Color("Game not found:", "red"), gameInput)
 		return
 	end
 
-	local placeKey, placeId = findKeyInsensitive(gameTable, placeInput)
+	if isPlaceId(gameValue) then
+		if placeInput then
+			print(Color("This game only has one place. Usage:", "yellow"), gameKey)
+			return
+		end
+
+		openPlace(gameKey, gameKey, gameValue)
+		return
+	end
+
+	local singlePlaceKey, singlePlaceId = getSinglePlaceFromTable(gameValue)
+
+	if singlePlaceKey then
+		if placeInput and placeInput:lower() ~= singlePlaceKey:lower() then
+			print(Color("Place not found:", "red"), placeInput)
+			return
+		end
+
+		openPlace(gameKey, singlePlaceKey, singlePlaceId)
+		return
+	end
+
+	if not placeInput then
+		print(`{Color("Usage:", "blue", "cyan")} ropen <game>/<place>`)
+		return
+	end
+
+	local placeKey, placeId = findKeyInsensitive(gameValue, placeInput)
 
 	if not placeId then
 		print(Color("Place not found:", "red"), placeInput)
 		return
 	end
 
-	openPlace(gameKey, placeKey, placeId, gameTable["UniverseId"])
+	openPlace(gameKey, placeKey, placeId)
 	return
 end
-
--- INTERACTIVE PICKER
 
 local gameOptions = {}
 
@@ -191,11 +237,24 @@ if not gameIndex then
 end
 
 local gameName = gameOptions[gameIndex]
+local gameValue = Config[gameName]
+
+if isPlaceId(gameValue) then
+	openPlace(gameName, gameName, gameValue)
+	return
+end
+
+local singlePlaceKey, singlePlaceId = getSinglePlaceFromTable(gameValue)
+
+if singlePlaceKey then
+	openPlace(gameName, singlePlaceKey, singlePlaceId)
+	return
+end
 
 local placeOptions = {}
 
-for placeName, _ in Config[gameName] do
-	if placeName ~= "UniverseId" then
+for placeName, value in gameValue do
+	if placeName ~= "UniverseId" and isPlaceId(value) then
 		table.insert(placeOptions, placeName)
 	end
 end
@@ -206,8 +265,6 @@ if not placeIndex then
 end
 
 local placeName = placeOptions[placeIndex]
+local placeId = gameValue[placeName]
 
-local universeId = Config[gameName]["UniverseId"]
-local placeId = Config[gameName][placeName]
-
-openPlace(gameName, placeName, placeId, universeId)
+openPlace(gameName, placeName, placeId)
