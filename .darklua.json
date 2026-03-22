@@ -1,0 +1,15 @@
+{
+	"process" : [
+		"compute_expression",
+		"remove_unused_if_branch",
+		"remove_unused_while",
+		"filter_after_early_return",
+		"remove_nil_declaration",
+		"remove_empty_do",
+		"remove_comments"
+	],
+	"bundle": {
+	  "require_mode": "luau",
+	  "excludes": ["@lune/**"]
+	}
+}

@@ -50,9 +50,14 @@ jobs:
       - name: Install Rokit
         uses: CompeyDev/setup-rokit@v0.1.2
 
+      - name: Bundle Code
+        run: |
+          darklua process ./src/Init.luau Out/Bundle.luau
+          darklua minify Out/Bundle.luau Out/Bundle.luau
+
       - name: Build binary
         run: |
-          lune build src/app.luau \
+          lune build Out/Bundle.luau \
             --target ${{ matrix.target }} \
             --output ${{ matrix.artifact-name }}
 

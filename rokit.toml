@@ -5,3 +5,4 @@
 
 [tools]
 lune = "lune-org/lune@0.10.4"
+darklua = "seaofvoices/darklua@0.18.0"

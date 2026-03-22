@@ -1,0 +1,19 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ropen Compile",
+      "type": "shell",
+	  "group": "build",
+      "command": "darklua process ./src/Init.luau Out/Bundle.luau;darklua minify Out/Bundle.luau Out/Bundle.luau;lune build Out/Bundle.luau -o ropen.exe",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "revealProblems": "never",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}
