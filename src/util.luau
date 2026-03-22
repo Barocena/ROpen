@@ -4,8 +4,57 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 
+function Util.getHomePath()
+	local osName = process.os
 
-function Util.resolveROpenPath()
+	if osName == "windows" then
+		return process.env.USERPROFILE
+	elseif osName == "macos" or osName == "linux" then
+		return process.env.HOME
+	end
+
+	error("Unsupported OS: " .. tostring(osName))
+end
+
+function Util.getGlobalPath()
+	local home = Util.getHomePath()
+	return home .. "/ropen.yaml"
+end
+
+function Util.openInEditor(path)
+	local editor = process.env.EDITOR
+
+	if editor and editor ~= "" then
+		process.exec(editor, { path })
+		return
+	end
+
+	local osName = process.os
+
+	if osName == "windows" then
+		process.exec("notepad", { path })
+	elseif osName == "macos" then
+		process.exec("open", { "-e", path })
+	else
+		process.exec("nano", { path })
+	end
+end
+
+function Util.mergeConfigs(base, override)
+	local result = table.clone(base)
+
+	for k, v in override do
+		if type(v) == "table" and type(result[k]) == "table" then
+			result[k] = Util.mergeConfigs(result[k], v)
+		else
+			result[k] = v
+		end
+	end
+
+	return result
+end
+
+function Util.resolveLocalPath()
 	if fs.isFile("./ropen.yaml") then
 		return "./ropen.yaml"
 	end

@@ -3,33 +3,56 @@ local serde = require("@lune/serde")
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 
-local VERSION = "0.0.1"
+local VERSION = "0.0.2"
 
 local Util = require("@self/util")
 local Help = require("@self/help")
 
-local ROpenPath = Util.resolveROpenPath()
 local Color = Util.Color
+
+local localPath = Util.resolveLocalPath()
+local globalPath = Util.getGlobalPath()
+
+local template = [[Crossroads:
+  Lobby: 1818 # place id
+  Arena: 1818 # place id
+
+YourGame: 1818 # placeid]]
 
 local arg = process.args[1]
 
 if arg and arg:lower() == "init" then
-	if ROpenPath then
-		print("ropen.yaml already exists at:", ROpenPath)
+	local isGlobal = process.args[2] == "--global"
+
+	local targetPath = isGlobal and globalPath or "./ropen.yaml"
+
+	if fs.isFile(targetPath) then
+		print("ropen.yaml already exists at:", targetPath)
 		return
 	end
 
-	local template = [[
-Crossroads:
-  Lobby: 1818 # place id
-  Arena: 1818 # place id
+	fs.writeFile(targetPath, template)
 
-YourGame: 1818 # placeid
-]]
+	print(`{Color("ropen.yaml", "cyan", "yellow")} initialized at {targetPath}`)
+	return
+end
 
-	fs.writeFile("./ropen.yaml", template)
+if arg and (arg:lower() == "edit" or arg:lower() == "e") then
+	local isGlobal = process.args[2] == "--global"
 
-	print(`{Color("ropen.yaml", "cyan", "yellow")} initialized`)
+	local targetPath = isGlobal and globalPath or localPath
+
+	if not targetPath then
+		if isGlobal then
+			fs.writeFile(globalPath, template)
+			targetPath = globalPath
+		else
+			print(Color("ropen.yaml not found in project.", "red"))
+			return
+		end
+	end
+
+	Util.openInEditor(targetPath)
 	return
 end
 
@@ -47,12 +70,31 @@ if arg then
 	end
 end
 
-if not ROpenPath then
-	print(Color(`ropen.yaml not found, run \`{Color("ropen init", "cyan", "red")}\` to create one.`, "red"))
-	return
+local Config = {}
+
+if globalPath and fs.isFile(globalPath) then
+	local globalConfig = serde.decode("yaml", fs.readFile(globalPath))
+	Config = Util.mergeConfigs(Config, globalConfig)
 end
 
-local Config = serde.decode("yaml", fs.readFile(ROpenPath))
+if localPath and fs.isFile(localPath) then
+	local localConfig = serde.decode("yaml", fs.readFile(localPath))
+	Config = Util.mergeConfigs(Config, localConfig)
+end
+
+if next(Config) == nil then
+	print(
+		Color(
+			`No config found. Run \`{Color("ropen init", "cyan", "red")}\` or \`{Color(
+				"ropen init --global",
+				"cyan",
+				"red"
+			)}\``,
+			"red"
+		)
+	)
+	return
+end
 
 if arg then
 	if process.args[2] then
