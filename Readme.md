@@ -37,7 +37,7 @@ the template of this file is
 
 ```yaml
 Crossroads:
-  UniverseId: 13058 # required
+  UniverseId: 13058 # optional, it will not show on the place list
   Lobby: 1818 # place id
   Arena: 1818 # place id
 ```
