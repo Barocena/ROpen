@@ -75,7 +75,7 @@ if arg then
 			print(Color("Usage: ropen --placeId <id>", "red"))
 			return
 		end
-		Util.openPlace(placeId, placeId, placeId)
+		Util.openPlace("Direct", tostring(placeId), placeId)
 		return
 	end
 end
