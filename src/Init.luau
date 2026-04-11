@@ -68,6 +68,16 @@ if arg then
 		print(`{Color("ROpen", "yellow", "cyan")} {VERSION}`)
 		return
 	end
+
+	if lower == "--placeid" then
+		local placeId = process.args[2]
+		if not placeId then
+			print(Color("Usage: ropen --placeId <id>", "red"))
+			return
+		end
+		Util.openPlace(placeId, placeId, placeId)
+		return
+	end
 end
 
 local Config = {}
