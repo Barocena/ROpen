@@ -71,11 +71,11 @@ if arg then
 
 	if lower == "--placeid" then
 		local placeId = process.args[2]
-		if not placeId then
-			print(Color("Usage: ropen --placeId <id>", "red"))
+		if not placeId or not tonumber(placeId) then
+			print(Color("Usage: ropen --placeid <id>", "red"))
 			return
 		end
-		Util.openPlace("Direct", tostring(placeId), placeId)
+		Util.openPlace(tostring(placeId), tostring(placeId), placeId)
 		return
 	end
 end
