@@ -30,7 +30,7 @@ function Help(VERSION)
 	print("  ropen --placeid 1818")
 	print("  ropen init --global")
 	print("  ropen edit --global")
-	print("")
+	Util.Log("")
 end
 
 return Help

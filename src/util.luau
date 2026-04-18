@@ -55,7 +55,9 @@ function Util.mergeConfigs(base, override)
 end
 
 function Util.resolveLocalPath()
-	if fs.isFile("./ropen.yaml") then return "./ropen.yaml" end
+	if fs.isFile("./ropen.yaml") then
+		return "./ropen.yaml"
+	end
 
 	local excludedDirectories = {
 		[".git"] = true,
@@ -67,7 +69,9 @@ function Util.resolveLocalPath()
 
 	local function find(dir)
 		local path = dir .. "/ropen.yaml"
-		if fs.isFile(path) then return path end
+		if fs.isFile(path) then
+			return path
+		end
 
 		if fs.isDir(dir) then
 			for _, entryName in ipairs(fs.readDir(dir)) do
@@ -76,7 +80,9 @@ function Util.resolveLocalPath()
 
 					if fs.isDir(entryPath) then
 						local found = find(entryPath)
-						if found then return found end
+						if found then
+							return found
+						end
 					end
 				end
 			end
@@ -92,7 +98,9 @@ function Util.findKeyInsensitive(tbl, key)
 	local lower = key:lower()
 
 	for k, v in tbl do
-		if type(k) == "string" and k:lower() == lower then return k, v end
+		if type(k) == "string" and k:lower() == lower then
+			return k, v
+		end
 	end
 
 	return nil
@@ -108,7 +116,9 @@ function Util.getSinglePlaceFromTable(tbl)
 
 	for k, v in tbl do
 		if k ~= "UniverseId" and Util.isPlaceId(v) then
-			if foundKey then return nil end
+			if foundKey then
+				return nil
+			end
 			foundKey = k
 			foundValue = v
 		end
@@ -118,7 +128,11 @@ function Util.getSinglePlaceFromTable(tbl)
 end
 
 function Util.Color(text, c1, c2)
-	return `{stdio.color(c1)}{text}{c2 and stdio.color(c2) or ""}{stdio.color("reset")}`
+	return `{stdio.color(c1)}{text}{c2 and stdio.color(c2) or ""}`
+end
+
+function Util.Log(...)
+	print(..., stdio.color("reset"))
 end
 
 function Util.openPlace(gameKey, placeKey, placeId)
@@ -135,9 +149,9 @@ function Util.openPlace(gameKey, placeKey, placeId)
 	end
 
 	if gameKey == placeKey then
-		print(`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan")}`)
+		Util.Log(`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan")}`)
 	else
-		print(
+		Util.Log(
 			`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan", "yellow")} → {Util.Color(
 				placeKey,
 				"cyan"
