@@ -3,7 +3,7 @@ local serde = require("@lune/serde")
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 
-local VERSION = "1.0.0"
+local VERSION = "1.1.0"
 
 local Util = require("@self/util")
 local Help = require("@self/help")
@@ -125,7 +125,7 @@ if arg then
 
 	if Util.isPlaceId(gameValue) then
 		if placeInput then
-			Log(Color(`This game only has one place. Usage: {gameKey}`, "yellow"))
+			Log(Color(`This game only has one place. {Color("Usage:", "blue", "cyan")} ropen {gameKey}`, "yellow"))
 			return
 		end
 
