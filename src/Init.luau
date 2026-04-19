@@ -9,6 +9,7 @@ local Util = require("@self/util")
 local Help = require("@self/help")
 
 local Color = Util.Color
+local Log = Util.Log
 
 local localPath = Util.resolveLocalPath()
 local globalPath = Util.getGlobalPath()
@@ -27,13 +28,13 @@ if arg and arg:lower() == "init" then
 	local targetPath = isGlobal and globalPath or "./ropen.yaml"
 
 	if fs.isFile(targetPath) then
-		print("ropen.yaml already exists at:", targetPath)
+		Log(`ropen.yaml already exists at: {targetPath}`)
 		return
 	end
 
 	fs.writeFile(targetPath, template)
 
-	print(`{Color("ropen.yaml", "cyan", "yellow")} initialized at {targetPath}`)
+	Log(`{Color("ropen.yaml", "cyan", "yellow")} initialized at {targetPath}`)
 	return
 end
 
@@ -47,7 +48,7 @@ if arg and (arg:lower() == "edit" or arg:lower() == "e") then
 			fs.writeFile(globalPath, template)
 			targetPath = globalPath
 		else
-			print(Color("ropen.yaml not found in project.", "red"))
+			Log(Color("ropen.yaml not found in project.", "red"))
 			return
 		end
 	end
@@ -65,14 +66,14 @@ if arg then
 	end
 
 	if lower == "-v" or lower == "--version" then
-		print(`{Color("ROpen", "yellow", "cyan")} {VERSION}`)
+		Log(`{Color("ROpen", "yellow", "cyan")} {VERSION}`)
 		return
 	end
 
 	if lower == "--placeid" then
 		local placeId = process.args[2]
 		if not placeId or not tonumber(placeId) then
-			print(Color("Usage: ropen --placeid <id>", "red"))
+			Log(Color("Usage: ropen --placeid <id>", "red"))
 			return
 		end
 		Util.openPlace(tostring(placeId), tostring(placeId), placeId)
@@ -93,7 +94,7 @@ if localPath and fs.isFile(localPath) then
 end
 
 if next(Config) == nil then
-	print(
+	Log(
 		Color(
 			`No config found. Run \`{Color("ropen init", "cyan", "red")}\` or \`{Color(
 				"ropen init --global",
@@ -118,13 +119,13 @@ if arg then
 	local gameKey, gameValue = Util.findKeyInsensitive(Config, gameInput)
 
 	if not gameValue then
-		print(Color("Game not found:", "red"), gameInput)
+		Log(Color(`Game not found: {gameInput}`, "red"))
 		return
 	end
 
 	if Util.isPlaceId(gameValue) then
 		if placeInput then
-			print(Color("This game only has one place. Usage:", "yellow"), gameKey)
+			Log(Color(`This game only has one place. Usage: {gameKey}`, "yellow"))
 			return
 		end
 
@@ -136,7 +137,7 @@ if arg then
 
 	if singlePlaceKey then
 		if placeInput and placeInput:lower() ~= singlePlaceKey:lower() then
-			print(Color("Place not found:", "red"), placeInput)
+			Log(Color(`Place not found: {placeInput}`, "red"))
 			return
 		end
 
@@ -145,14 +146,14 @@ if arg then
 	end
 
 	if not placeInput then
-		print(`{Color("Usage:", "blue", "cyan")} ropen <game>/<place>`)
+		Log(`{Color("Usage:", "blue", "cyan")} ropen <game>/<place>`)
 		return
 	end
 
 	local placeKey, placeId = Util.findKeyInsensitive(gameValue, placeInput)
 
 	if not placeId then
-		print(Color("Place not found:", "red"), placeInput)
+		Log(Color(`Place not found: {placeInput}`, "red"))
 		return
 	end
 
@@ -166,7 +167,7 @@ for gameName in Config do
 	table.insert(gameOptions, gameName)
 end
 
-local gameIndex = stdio.prompt("select", Color("Select Game:", "purple", "cyan"), gameOptions)
+local gameIndex = stdio.prompt("select", Color("Select Game:", "purple", "reset"), gameOptions)
 if not gameIndex then
 	return
 end
@@ -194,7 +195,7 @@ for placeName, value in gameValue do
 	end
 end
 
-local placeIndex = stdio.prompt("select", Color("Select Place:", "purple", "cyan"), placeOptions)
+local placeIndex = stdio.prompt("select", Color("Select Place:", "purple", "reset"), placeOptions)
 if not placeIndex then
 	return
 end

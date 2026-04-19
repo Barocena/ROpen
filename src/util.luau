@@ -131,6 +131,10 @@ function Util.Color(text, c1, c2)
 	return `{stdio.color(c1)}{text}{c2 and stdio.color(c2) or ""}`
 end
 
+function Util.Log(...)
+	print(..., stdio.color("reset"))
+end
+
 function Util.openPlace(gameKey, placeKey, placeId)
 	local url = `roblox-studio:1+task:EditPlace+placeId:{placeId}+universeId:0`
 
@@ -145,9 +149,9 @@ function Util.openPlace(gameKey, placeKey, placeId)
 	end
 
 	if gameKey == placeKey then
-		print(`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan")}`)
+		Util.Log(`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan")}`)
 	else
-		print(
+		Util.Log(
 			`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan", "yellow")} → {Util.Color(
 				placeKey,
 				"cyan"
