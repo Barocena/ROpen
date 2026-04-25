@@ -81,8 +81,9 @@ if arg then
 	end
 
 	if lower:match("%.rbxlx?$") and fs.isFile(arg) then
-		Util.openFileInExplorer(arg)
-		Log(`{Color("Opening File:", "yellow")} {Color(arg, "cyan")}`)
+		Util.open(arg)
+		local filename = arg:match("([^/\\]+)$") or arg
+		Log(`{Color("Opening Place:", "yellow")} {Color(filename, "cyan")}`)
 		return
 	end
 end

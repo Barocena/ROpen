@@ -135,7 +135,7 @@ function Util.Log(...)
 	print(..., stdio.color("reset"))
 end
 
-local function open(target)
+function Util.open(target)
 	local osName = process.os
 
 	if osName == "windows" then
@@ -149,7 +149,7 @@ end
 
 function Util.openPlace(gameKey, placeKey, placeId)
 	local url = `roblox-studio:1+task:EditPlace+placeId:{placeId}+universeId:0`
-	open(url)
+	Util.open(url)
 
 	if gameKey == placeKey then
 		Util.Log(`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan")}`)
@@ -161,10 +161,6 @@ function Util.openPlace(gameKey, placeKey, placeId)
 			)}`
 		)
 	end
-end
-
-function Util.openFileInExplorer(path)
-	open(path)
 end
 
 return Util
