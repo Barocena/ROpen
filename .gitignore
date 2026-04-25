@@ -1,3 +1,5 @@
 ropen.yaml
 *.exe
 Out
+*.rbxl
+*.rbxlx

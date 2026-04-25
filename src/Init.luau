@@ -3,7 +3,7 @@ local serde = require("@lune/serde")
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 
-local VERSION = "1.1.0"
+local VERSION = "1.2.0"
 
 local Util = require("@self/util")
 local Help = require("@self/help")
@@ -77,6 +77,12 @@ if arg then
 			return
 		end
 		Util.openPlace(tostring(placeId), tostring(placeId), placeId)
+		return
+	end
+
+	if lower:match("%.rbxlx?$") and fs.isFile(arg) then
+		Util.openFileInExplorer(arg)
+		Log(`{Color("Opening File:", "yellow")} {Color(arg, "cyan")}`)
 		return
 	end
 end

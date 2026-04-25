@@ -135,18 +135,21 @@ function Util.Log(...)
 	print(..., stdio.color("reset"))
 end
 
-function Util.openPlace(gameKey, placeKey, placeId)
-	local url = `roblox-studio:1+task:EditPlace+placeId:{placeId}+universeId:0`
-
+local function open(target)
 	local osName = process.os
 
 	if osName == "windows" then
-		process.exec("", { 'explorer "' .. url .. '"' }, { shell = true })
+		process.exec("", { 'explorer "' .. target .. '"' }, { shell = true })
 	elseif osName == "macos" then
-		process.exec("open", { url })
+		process.exec("open", { target })
 	else
-		process.exec("xdg-open", { url })
+		process.exec("xdg-open", { target })
 	end
+end
+
+function Util.openPlace(gameKey, placeKey, placeId)
+	local url = `roblox-studio:1+task:EditPlace+placeId:{placeId}+universeId:0`
+	open(url)
 
 	if gameKey == placeKey then
 		Util.Log(`{Util.Color("Opening Place:", "yellow")} {Util.Color(gameKey, "cyan")}`)
@@ -158,6 +161,10 @@ function Util.openPlace(gameKey, placeKey, placeId)
 			)}`
 		)
 	end
+end
+
+function Util.openFileInExplorer(path)
+	open(path)
 end
 
 return Util
