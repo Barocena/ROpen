@@ -54,6 +54,176 @@ function Util.mergeConfigs(base, override)
 	return result
 end
 
+local UTF8_BOM = string.char(0xEF, 0xBB, 0xBF)
+
+local function stripUtf8Bom(text)
+	return (text:gsub("^" .. UTF8_BOM, ""))
+end
+
+local function yamlLines(text)
+	local lines = {}
+	for line in text:gmatch("[^\r\n]+") do
+		table.insert(lines, line)
+	end
+	return lines
+end
+
+local function yamlIndent(line)
+	return #(line:match("^(%s*)") or "")
+end
+
+local function yamlMappingKeyAtStart(s)
+	return s:match("^([%w_-]+)%s*:")
+end
+
+local function yamlOrderedGameKeys(content)
+	if content == nil or content == "" then
+		return {}
+	end
+
+	local keys = {}
+	local seen = {}
+	for _, line in ipairs(yamlLines(stripUtf8Bom(content))) do
+		local trimmed = line:match("^%s*(.-)%s*$")
+		if trimmed == "" or trimmed:match("^#") or yamlIndent(line) ~= 0 then
+			continue
+		end
+
+		local key = yamlMappingKeyAtStart(trimmed)
+		if key and not seen[key] then
+			seen[key] = true
+			table.insert(keys, key)
+		end
+	end
+
+	return keys
+end
+
+function Util.yamlOrderedPlaceKeys(content, gameKey)
+	if content == nil or content == "" or gameKey == nil or gameKey == "" then
+		return {}
+	end
+
+	local lines = yamlLines(stripUtf8Bom(content))
+	local want = gameKey:lower()
+
+	local sectionIndex
+	for i, line in ipairs(lines) do
+		local key = yamlMappingKeyAtStart(line)
+		if key and yamlIndent(line) == 0 and key:lower() == want then
+			sectionIndex = i
+			break
+		end
+	end
+
+	if not sectionIndex then
+		return {}
+	end
+
+	local header = lines[sectionIndex]
+	local valuePart = header:match("^[%w_-]+%s*:%s*(.*)$")
+	if valuePart and valuePart:match("^%s*%d") then
+		return {}
+	end
+
+	local keys = {}
+	local blockIndent
+
+	for i = sectionIndex + 1, #lines do
+		local line = lines[i]
+		local indent = yamlIndent(line)
+		local rest = line:sub(indent + 1)
+
+		if rest == "" or rest:match("^#") then
+			continue
+		end
+
+		if indent == 0 and yamlMappingKeyAtStart(rest) then
+			break
+		end
+
+		local key = yamlMappingKeyAtStart(rest)
+		if not key or indent == 0 then
+			continue
+		end
+
+		if blockIndent == nil then
+			blockIndent = indent
+		end
+
+		if indent == blockIndent and key:lower() ~= "universeid" then
+			table.insert(keys, key)
+		end
+	end
+
+	return keys
+end
+
+--- Games as listed in yaml files (local first, then global-only keys), then any extras from `config`.
+function Util.orderGames(config, localPath, globalPath)
+	local ordered = {}
+	local seen = {}
+
+	local function addFromFile(path)
+		if not path or not fs.isFile(path) then
+			return
+		end
+		local content = fs.readFile(path)
+		for _, yamlKey in yamlOrderedGameKeys(content) do
+			local actualKey = Util.findKeyInsensitive(config, yamlKey)
+			if actualKey and not seen[actualKey] then
+				seen[actualKey] = true
+				table.insert(ordered, actualKey)
+			end
+		end
+	end
+
+	addFromFile(localPath)
+	addFromFile(globalPath)
+
+	for k in config do
+		if not seen[k] then
+			table.insert(ordered, k)
+		end
+	end
+
+	return ordered
+end
+
+--- Places for prompts: yaml order (local then global), matching `gameValue` entries.
+function Util.orderPlaces(gameValue, gameName, localPath, globalPath)
+	local ordered = {}
+	local seen = {}
+
+	local function addFromFile(path)
+		if not path or not fs.isFile(path) then
+			return
+		end
+		local content = fs.readFile(path)
+		for _, yamlKey in Util.yamlOrderedPlaceKeys(content, gameName) do
+			local actualKey = Util.findKeyInsensitive(gameValue, yamlKey)
+			if actualKey and actualKey ~= "UniverseId" and not seen[actualKey] then
+				local val = gameValue[actualKey]
+				if Util.isPlaceId(val) then
+					seen[actualKey] = true
+					table.insert(ordered, actualKey)
+				end
+			end
+		end
+	end
+
+	addFromFile(localPath)
+	addFromFile(globalPath)
+
+	for placeName, value in gameValue do
+		if placeName ~= "UniverseId" and Util.isPlaceId(value) and not seen[placeName] then
+			table.insert(ordered, placeName)
+		end
+	end
+
+	return ordered
+end
+
 function Util.resolveLocalPath()
 	if fs.isFile("./ropen.yaml") then
 		return "./ropen.yaml"

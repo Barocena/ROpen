@@ -168,11 +168,7 @@ if arg then
 	return
 end
 
-local gameOptions = {}
-
-for gameName in Config do
-	table.insert(gameOptions, gameName)
-end
+local gameOptions = Util.orderGames(Config, localPath, globalPath)
 
 local gameIndex = stdio.prompt("select", Color("Select Game:", "purple", "reset"), gameOptions)
 if not gameIndex then
@@ -194,13 +190,7 @@ if singlePlaceKey then
 	return
 end
 
-local placeOptions = {}
-
-for placeName, value in gameValue do
-	if placeName ~= "UniverseId" and Util.isPlaceId(value) then
-		table.insert(placeOptions, placeName)
-	end
-end
+local placeOptions = Util.orderPlaces(gameValue, gameName, localPath, globalPath)
 
 local placeIndex = stdio.prompt("select", Color("Select Place:", "purple", "reset"), placeOptions)
 if not placeIndex then
