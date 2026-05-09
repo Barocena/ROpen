@@ -3,7 +3,7 @@ local serde = require("@lune/serde")
 local process = require("@lune/process")
 local stdio = require("@lune/stdio")
 
-local VERSION = "1.2.0"
+local VERSION = "1.3.0"
 
 local Util = require("@self/util")
 local Help = require("@self/help")
