@@ -101,6 +101,10 @@ if localPath and fs.isFile(localPath) then
 end
 
 if next(Config) == nil then
+	if arg and not process.args[2] and arg:match("^%d+$") and tonumber(arg) then
+		Util.openPlace(arg, arg, arg)
+		return
+	end
 	Log(
 		Color(
 			`No config found. Run \`{Color("ropen init", "cyan", "red")}\` or \`{Color(
@@ -115,6 +119,14 @@ if next(Config) == nil then
 end
 
 if arg then
+	if not process.args[2] and arg:match("^%d+$") and tonumber(arg) then
+		local _, gameValue = Util.findKeyInsensitive(Config, arg)
+		if not gameValue then
+			Util.openPlace(arg, arg, arg)
+			return
+		end
+	end
+
 	if process.args[2] then
 		arg = table.concat(process.args, " ")
 	end
