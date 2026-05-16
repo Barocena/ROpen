@@ -72,8 +72,42 @@ local function yamlIndent(line)
 	return #(line:match("^(%s*)") or "")
 end
 
-local function yamlMappingKeyAtStart(s)
-	return s:match("^([%w_-]+)%s*:")
+-- Parse a YAML mapping line (trimmed, no leading indent). Returns key and value after ":".
+local function yamlParseMappingLine(trimmed)
+	if not trimmed or trimmed == "" or trimmed:match("^#") then
+		return nil, nil
+	end
+
+	local quotedKey, quotedRest = trimmed:match('^"([^"]*)"%s*:%s*(.*)$')
+	if quotedKey then
+		return quotedKey, quotedRest
+	end
+
+	local singleKey, singleRest = trimmed:match("^'([^']*)'%s*:%s*(.*)$")
+	if singleKey then
+		return singleKey, singleRest
+	end
+
+	local colon = trimmed:find(":")
+	if not colon then
+		return nil, nil
+	end
+
+	local key = trimmed:sub(1, colon - 1):match("^%s*(.-)%s*$")
+	if not key or key == "" then
+		return nil, nil
+	end
+
+	return key, trimmed:sub(colon + 1)
+end
+
+local function yamlMappingKeyAtStart(trimmed)
+	local key = yamlParseMappingLine(trimmed)
+	return key
+end
+
+local function yamlInlinePlaceIdValue(valuePart)
+	return valuePart ~= nil and valuePart:match("^%s*%d") ~= nil
 end
 
 local function yamlOrderedGameKeys(content)
@@ -105,14 +139,17 @@ function Util.yamlOrderedPlaceKeys(content, gameKey)
 	end
 
 	local lines = yamlLines(stripUtf8Bom(content))
-	local want = gameKey:lower()
+	local want = tostring(gameKey):lower()
 
 	local sectionIndex
 	for i, line in ipairs(lines) do
-		local key = yamlMappingKeyAtStart(line)
-		if key and yamlIndent(line) == 0 and key:lower() == want then
-			sectionIndex = i
-			break
+		if yamlIndent(line) == 0 then
+			local trimmed = line:match("^%s*(.-)%s*$")
+			local key = yamlMappingKeyAtStart(trimmed)
+			if key and key:lower() == want then
+				sectionIndex = i
+				break
+			end
 		end
 	end
 
@@ -121,8 +158,8 @@ function Util.yamlOrderedPlaceKeys(content, gameKey)
 	end
 
 	local header = lines[sectionIndex]
-	local valuePart = header:match("^[%w_-]+%s*:%s*(.*)$")
-	if valuePart and valuePart:match("^%s*%d") then
+	local _, headerValue = yamlParseMappingLine(header:match("^%s*(.-)%s*$"))
+	if yamlInlinePlaceIdValue(headerValue) then
 		return {}
 	end
 
@@ -202,7 +239,7 @@ function Util.orderPlaces(gameValue, gameName, localPath, globalPath)
 		local content = fs.readFile(path)
 		for _, yamlKey in Util.yamlOrderedPlaceKeys(content, gameName) do
 			local actualKey = Util.findKeyInsensitive(gameValue, yamlKey)
-			if actualKey and actualKey ~= "UniverseId" and not seen[actualKey] then
+			if actualKey and tostring(actualKey):lower() ~= "universeid" and not seen[actualKey] then
 				local val = gameValue[actualKey]
 				if Util.isPlaceId(val) then
 					seen[actualKey] = true
@@ -216,7 +253,7 @@ function Util.orderPlaces(gameValue, gameName, localPath, globalPath)
 	addFromFile(globalPath)
 
 	for placeName, value in gameValue do
-		if placeName ~= "UniverseId" and Util.isPlaceId(value) and not seen[placeName] then
+		if tostring(placeName):lower() ~= "universeid" and Util.isPlaceId(value) and not seen[placeName] then
 			table.insert(ordered, placeName)
 		end
 	end
@@ -265,10 +302,10 @@ function Util.resolveLocalPath()
 end
 
 function Util.findKeyInsensitive(tbl, key)
-	local lower = key:lower()
+	local lower = tostring(key):lower()
 
 	for k, v in tbl do
-		if type(k) == "string" and k:lower() == lower then
+		if tostring(k):lower() == lower then
 			return k, v
 		end
 	end
@@ -285,7 +322,7 @@ function Util.getSinglePlaceFromTable(tbl)
 	local foundValue = nil
 
 	for k, v in tbl do
-		if k ~= "UniverseId" and Util.isPlaceId(v) then
+		if tostring(k):lower() ~= "universeid" and Util.isPlaceId(v) then
 			if foundKey then
 				return nil
 			end
