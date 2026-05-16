@@ -68,13 +68,21 @@ local function yamlLines(text)
 	return lines
 end
 
-local function yamlIndent(line)
-	return #(line:match("^(%s*)") or "")
+local function yamlNormalizedLines(content)
+	return yamlLines(stripUtf8Bom(content))
 end
 
--- Parse a YAML mapping line (trimmed, no leading indent). Returns key and value after ":".
+local function yamlTrim(line)
+	return line:match("^%s*(.-)%s*$") or ""
+end
+
+local function yamlIndent(line)
+	return #line:match("^(%s*)")
+end
+
+-- trimmed line: no leading indent in the string
 local function yamlParseMappingLine(trimmed)
-	if not trimmed or trimmed == "" or trimmed:match("^#") then
+	if trimmed == "" or trimmed:match("^#") then
 		return nil, nil
 	end
 
@@ -101,29 +109,19 @@ local function yamlParseMappingLine(trimmed)
 	return key, trimmed:sub(colon + 1)
 end
 
-local function yamlMappingKeyAtStart(trimmed)
-	local key = yamlParseMappingLine(trimmed)
-	return key
-end
-
-local function yamlInlinePlaceIdValue(valuePart)
-	return valuePart ~= nil and valuePart:match("^%s*%d") ~= nil
-end
-
 local function yamlOrderedGameKeys(content)
-	if content == nil or content == "" then
+	if not content or content == "" then
 		return {}
 	end
 
 	local keys = {}
 	local seen = {}
-	for _, line in ipairs(yamlLines(stripUtf8Bom(content))) do
-		local trimmed = line:match("^%s*(.-)%s*$")
-		if trimmed == "" or trimmed:match("^#") or yamlIndent(line) ~= 0 then
+	for _, line in ipairs(yamlNormalizedLines(content)) do
+		if yamlIndent(line) ~= 0 then
 			continue
 		end
 
-		local key = yamlMappingKeyAtStart(trimmed)
+		local key = yamlParseMappingLine(yamlTrim(line))
 		if key and not seen[key] then
 			seen[key] = true
 			table.insert(keys, key)
@@ -133,19 +131,18 @@ local function yamlOrderedGameKeys(content)
 	return keys
 end
 
-function Util.yamlOrderedPlaceKeys(content, gameKey)
-	if content == nil or content == "" or gameKey == nil or gameKey == "" then
+local function yamlOrderedPlaceKeys(content, gameKey)
+	if not content or content == "" or not gameKey or gameKey == "" then
 		return {}
 	end
 
-	local lines = yamlLines(stripUtf8Bom(content))
+	local lines = yamlNormalizedLines(content)
 	local want = tostring(gameKey):lower()
 
 	local sectionIndex
 	for i, line in ipairs(lines) do
 		if yamlIndent(line) == 0 then
-			local trimmed = line:match("^%s*(.-)%s*$")
-			local key = yamlMappingKeyAtStart(trimmed)
+			local key = yamlParseMappingLine(yamlTrim(line))
 			if key and key:lower() == want then
 				sectionIndex = i
 				break
@@ -157,9 +154,8 @@ function Util.yamlOrderedPlaceKeys(content, gameKey)
 		return {}
 	end
 
-	local header = lines[sectionIndex]
-	local _, headerValue = yamlParseMappingLine(header:match("^%s*(.-)%s*$"))
-	if yamlInlinePlaceIdValue(headerValue) then
+	local _, headerValue = yamlParseMappingLine(yamlTrim(lines[sectionIndex]))
+	if headerValue and headerValue:match("^%s*%d") then
 		return {}
 	end
 
@@ -175,12 +171,14 @@ function Util.yamlOrderedPlaceKeys(content, gameKey)
 			continue
 		end
 
-		if indent == 0 and yamlMappingKeyAtStart(rest) then
-			break
+		local key = yamlParseMappingLine(rest)
+		if indent == 0 then
+			if key then
+				break
+			end
+			continue
 		end
-
-		local key = yamlMappingKeyAtStart(rest)
-		if not key or indent == 0 then
+		if not key then
 			continue
 		end
 
@@ -196,27 +194,29 @@ function Util.yamlOrderedPlaceKeys(content, gameKey)
 	return keys
 end
 
+local function eachYamlFileKeys(paths, extractKeys, consume)
+	for _, path in paths do
+		if not path or not fs.isFile(path) then
+			continue
+		end
+		for _, yamlKey in extractKeys(fs.readFile(path)) do
+			consume(yamlKey)
+		end
+	end
+end
+
 --- Games as listed in yaml files (local first, then global-only keys), then any extras from `config`.
 function Util.orderGames(config, localPath, globalPath)
 	local ordered = {}
 	local seen = {}
 
-	local function addFromFile(path)
-		if not path or not fs.isFile(path) then
-			return
+	eachYamlFileKeys({ localPath, globalPath }, yamlOrderedGameKeys, function(yamlKey)
+		local actualKey = Util.findKeyInsensitive(config, yamlKey)
+		if actualKey and not seen[actualKey] then
+			seen[actualKey] = true
+			table.insert(ordered, actualKey)
 		end
-		local content = fs.readFile(path)
-		for _, yamlKey in yamlOrderedGameKeys(content) do
-			local actualKey = Util.findKeyInsensitive(config, yamlKey)
-			if actualKey and not seen[actualKey] then
-				seen[actualKey] = true
-				table.insert(ordered, actualKey)
-			end
-		end
-	end
-
-	addFromFile(localPath)
-	addFromFile(globalPath)
+	end)
 
 	for k in config do
 		if not seen[k] then
@@ -232,25 +232,18 @@ function Util.orderPlaces(gameValue, gameName, localPath, globalPath)
 	local ordered = {}
 	local seen = {}
 
-	local function addFromFile(path)
-		if not path or not fs.isFile(path) then
-			return
-		end
-		local content = fs.readFile(path)
-		for _, yamlKey in Util.yamlOrderedPlaceKeys(content, gameName) do
-			local actualKey = Util.findKeyInsensitive(gameValue, yamlKey)
-			if actualKey and tostring(actualKey):lower() ~= "universeid" and not seen[actualKey] then
-				local val = gameValue[actualKey]
-				if Util.isPlaceId(val) then
-					seen[actualKey] = true
-					table.insert(ordered, actualKey)
-				end
+	eachYamlFileKeys({ localPath, globalPath }, function(content)
+		return yamlOrderedPlaceKeys(content, gameName)
+	end, function(yamlKey)
+		local actualKey = Util.findKeyInsensitive(gameValue, yamlKey)
+		if actualKey and tostring(actualKey):lower() ~= "universeid" and not seen[actualKey] then
+			local val = gameValue[actualKey]
+			if Util.isPlaceId(val) then
+				seen[actualKey] = true
+				table.insert(ordered, actualKey)
 			end
 		end
-	end
-
-	addFromFile(localPath)
-	addFromFile(globalPath)
+	end)
 
 	for placeName, value in gameValue do
 		if tostring(placeName):lower() ~= "universeid" and Util.isPlaceId(value) and not seen[placeName] then
