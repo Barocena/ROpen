@@ -335,16 +335,116 @@ function Util.Log(...)
 	print(..., stdio.color("reset"))
 end
 
+local function isWsl()
+	if process.os ~= "linux" then
+		return false
+	end
+
+	if process.env.WSL_DISTRO_NAME or process.env.WSL_INTEROP or process.env.WSLENV then
+		return true
+	end
+
+	local ok, release = pcall(function()
+		if fs.isFile("/proc/sys/kernel/osrelease") then
+			return fs.readFile("/proc/sys/kernel/osrelease"):lower()
+		end
+		return ""
+	end)
+
+	return ok and release ~= "" and (release:find("microsoft", 1, true) or release:find("wsl", 1, true)) ~= nil
+end
+
+-- pcall is true if the process spawned; spawn failure (missing binary) is false.
+local function tryExec(program, args, options)
+	local spawned = pcall(process.exec, program, args, options)
+	return spawned
+end
+
+local function tryShell(command)
+	local spawned, result = pcall(process.exec, command, {}, { shell = true })
+	return spawned and result.ok
+end
+
+local function tryWindowsBins(bins, args)
+	for _, bin in bins do
+		if tryExec(bin, args) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Roblox Studio lives on Windows; from WSL hand URLs/files to the host.
+local function openOnWindowsHost(target)
+	local openTarget = target
+
+	if target:sub(1, 1) == "/" then
+		local spawned, result = pcall(process.exec, "wslpath", { "-w", target })
+		if spawned and result.ok then
+			local converted = result.stdout:match("^%s*(.-)%s*$")
+			if converted and converted ~= "" then
+				openTarget = converted
+			end
+		end
+	end
+
+	-- Start-Process handles protocol URLs; cmd `start ""` becomes `\\` under WSL interop.
+	local psCommand = `Start-Process '{openTarget:gsub("'", "''")}'`
+	local psArgs = { "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", psCommand }
+	if tryWindowsBins({
+		"powershell.exe",
+		"/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+		"/mnt/c/Windows/System32/powershell.exe",
+	}, psArgs) then
+		return
+	end
+
+	if tryWindowsBins({
+		"rundll32.exe",
+		"/mnt/c/Windows/System32/rundll32.exe",
+	}, { "url.dll,FileProtocolHandler", openTarget }) then
+		return
+	end
+
+	-- Non-empty title is required: `start` treats the first quoted arg as a window title.
+	if tryWindowsBins({
+		"cmd.exe",
+		"/mnt/c/Windows/System32/cmd.exe",
+	}, { "/c", `start ropen "{openTarget}"` }) then
+		return
+	end
+
+	if tryShell(`wslview "{openTarget}"`) then
+		return
+	end
+
+	error("Unable to open Roblox Studio from WSL. Is Windows interop enabled?")
+end
+
 function Util.open(target)
 	local osName = process.os
 
 	if osName == "windows" then
 		process.exec("", { 'explorer "' .. target .. '"' }, { shell = true })
-	elseif osName == "macos" then
-		process.exec("open", { target })
-	else
-		process.exec("xdg-open", { target })
+		return
 	end
+
+	if osName == "macos" then
+		process.exec("open", { target })
+		return
+	end
+
+	if isWsl() then
+		openOnWindowsHost(target)
+		return
+	end
+
+	if tryExec("xdg-open", { target }) then
+		return
+	end
+
+	-- xdg-open is often missing on WSL even when WSL env vars are absent.
+	openOnWindowsHost(target)
 end
 
 function Util.openPlace(gameKey, placeKey, placeId)
