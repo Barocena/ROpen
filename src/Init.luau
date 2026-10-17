@@ -20,6 +20,9 @@ local template = [[Crossroads:
 
 YourGame: 1818 # placeid]]
 
+-- Roblox's baseplate template, the place Studio's "New Experience" opens.
+local BASEPLATE_PLACE_ID = 95206881
+
 local arg = process.args[1]
 
 if arg and arg:lower() == "init" then
@@ -77,6 +80,11 @@ if arg then
 			return
 		end
 		Util.openPlace(tostring(placeId), tostring(placeId), placeId)
+		return
+	end
+
+	if lower == "--new" then
+		Util.openPlace(tostring(BASEPLATE_PLACE_ID), tostring(BASEPLATE_PLACE_ID), BASEPLATE_PLACE_ID)
 		return
 	end
 
