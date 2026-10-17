@@ -83,7 +83,7 @@ if arg then
 		return
 	end
 
-	if lower == "new" then
+	if lower == "--new" then
 		Util.openPlace(tostring(BASEPLATE_PLACE_ID), tostring(BASEPLATE_PLACE_ID), BASEPLATE_PLACE_ID)
 		return
 	end

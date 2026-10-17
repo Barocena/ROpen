@@ -14,7 +14,7 @@ function Help(VERSION)
 	print("  " .. Color("ropen <placeId>", "cyan", "reset") .. "		Open by numeric Roblox place ID")
 	print("  " .. Color("ropen --placeid <id>", "cyan", "reset") .. "		Same as a bare place ID (explicit)")
 	print("  " .. Color("ropen <file.rbxl>", "cyan", "reset") .. "		Open a local .rbxl / .rbxlx file")
-	print("  " .. Color("ropen new", "cyan", "reset") .. "			Open an empty place, like Studio's New Experience")
+	print("  " .. Color("ropen --new", "cyan", "reset") .. "			Open an empty place, like Studio's New Experience")
 	print("")
 
 	print(Color("CONFIGURATION", "purple", "cyan"))
@@ -38,7 +38,7 @@ function Help(VERSION)
 	print("  ropen")
 	print("  ropen 1818")
 	print("  ropen ./path/to/file.rbxl")
-	print("  ropen new")
+	print("  ropen --new")
 	Util.Log("")
 end
 
